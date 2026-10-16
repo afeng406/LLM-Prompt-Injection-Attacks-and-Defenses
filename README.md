@@ -1,1 +1,15 @@
-# LLM-Prompt-Injection-Attacks-and-Defenses
+# LLM Prompt Injection Attacks and Defenses
+
+LLM 应用提示注入攻防课程实验。首版目标是搭建单轮问答服务，测试直接注入和资料注入，并对输入过滤、资料分区、输出审查进行分档评估。
+
+**当前状态：设计与 AI 编程 Harness 已完成；应用代码、真实模型调用和实验结果尚未实现。**
+
+| 文档 | 用途 |
+| --- | --- |
+| [设计方案](设计方案.md) | 实验目标、范围与评估方法 |
+| [实施方案](实施方案.md) | 阶段任务、接口、数据格式与验收条件 |
+| [资料核验](资料核验.md) | 模型渠道和提示注入参考资料 |
+| [Harness 使用说明](Harness/README.md) | AI 编程流程、领域边界与反过度设计约束 |
+| [AGENTS.md](AGENTS.md) | 在本项目中工作的 AI 编程规则 |
+
+计划技术栈为 FastAPI、Vue 3 和 OpenAI 兼容模型接口。模型调用前需核实账号额度与当前模型可用性；API Key 仅保存在本机环境配置中，不提交到仓库。
