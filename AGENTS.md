@@ -12,14 +12,14 @@
 
 ## 验证命令
 
-- 当前只有文档，没有可运行的前后端或自动化测试。文档改动先检查引用文件存在、路径有效，并与两份方案的事实和阶段状态一致。
-- 后端代码建成后，在 `backend` 目录用其实际虚拟环境运行 `python -m compileall app`；若已配置测试命令，再运行受影响的测试。
-- 前端代码建成且 `package.json` 含 `build` 脚本后，在 `frontend` 目录运行 `npm run build`；页面改动还需手工检查本机问答流程和浏览器网络请求。
-- 模型接入先做离线请求地址检查；真实 API 冒烟仅在密钥轮换、账号额度与费用条件确认后执行，并记录真实结果。验证命令随项目落地后更新，不能臆造通过记录。
+- 在 `backend` 运行 `.venv/Scripts/python.exe -m unittest discover -s tests -v`、`.venv/Scripts/ruff.exe check app experiments tests ../scripts` 与 `.venv/Scripts/ruff.exe format --check app experiments tests ../scripts`；测试使用本地模拟传输，不调用模型。
+- 在 `frontend` 运行 `npm run build` 与 `npm run format:check`；页面改动再运行 `npm run test:e2e`（需本机前后端与 Edge）。浏览器测试只发送 B1 拦截用例，不调用模型。
+- 从根目录运行 `backend/.venv/Scripts/python.exe scripts/evaluate.py --suite smoke` 可离线预览。真实调用需用户明确授权及确认额度；本轮已授权的 3 次普通问答已完成，不自动执行正式攻击集。
+- 文档变更检查链接、路径和实现状态，已验证事实见 `实现记录.md`；不把离线测试数据当成真实模型成绩。
 
 ## 风险边界
 
-- 不把真实 API Key 写入代码、前端、文档、日志、截图或提交历史；不复用曾发到聊天中的旧 Key。`backend/.env` 只在本机管理。
+- 不把真实 API Key 写入代码、前端、文档、日志、截图或提交历史。仅按用户当前明确授权把凭证配置到被 Git 忽略的 `backend/.env`，不得输出其值；已暴露凭证建议轮换。
 - 前端不得直接调用 LongCat/OpenRouter；公开接口不得把系统提示、内部 canary 真值或原始评估日志作为独立字段返回，也不接收任意角色消息、文件路径或实验夹具。B0～B2 的模型回答若实际泄露虚构 canary，仍按实验规则如实展示。
 - 首版仅做单轮、本机、显式资料选择；没有明确需求时不增加 Agent、向量库、多轮会话、真实工单或外部操作工具。
 - 不因为污染资料包含命令就执行真实文件、网络、Shell 或账户操作；真实计费调用、正式评估与外部发布遵守用户当前授权及额度边界。
