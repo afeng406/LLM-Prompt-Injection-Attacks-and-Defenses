@@ -62,8 +62,8 @@ LLM_TEMPERATURE=0
 **终端一：启动后端。**
 
 ```powershell
-Set-Location 'C:\Users\阿锋\Desktop\LLM Prompt Injection Attacks and Defenses\backend'
-.venv/Scripts/python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+cd "C:\Users\阿锋\Desktop\LLM Prompt Injection Attacks and Defenses\backend"
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
 看到服务监听 `http://127.0.0.1:8000` 后，保留这个终端。
@@ -71,7 +71,7 @@ Set-Location 'C:\Users\阿锋\Desktop\LLM Prompt Injection Attacks and Defenses\
 **终端二：启动前端。**
 
 ```powershell
-Set-Location 'C:\Users\阿锋\Desktop\LLM Prompt Injection Attacks and Defenses\frontend'
+cd "C:\Users\阿锋\Desktop\LLM Prompt Injection Attacks and Defenses\frontend"
 npm run dev
 ```
 
