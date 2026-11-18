@@ -191,6 +191,11 @@ class PipelineTests(unittest.IsolatedAsyncioTestCase):
             str(requests[0].url), "https://api.longcat.chat/openai/v1/chat/completions"
         )
         self.assertEqual(len(requests), 1)
+        payload = json.loads(requests[0].content)
+        self.assertNotIn("max_tokens", payload)
+        self.assertNotIn("max_completion_tokens", payload)
+        self.assertNotIn("reasoning_effort", payload)
+        self.assertNotIn("max_tokens", test_settings().public_config())
         self.assertEqual(result.answer, "离线响应")
 
     async def test_429_is_safe_and_never_retried(self):

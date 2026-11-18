@@ -51,9 +51,10 @@ LLM_API_KEY=replace-with-local-secret
 LLM_BASE_URL=https://api.longcat.chat/openai/v1
 LLM_MODEL=LongCat-2.5-Preview
 LLM_TIMEOUT_SECONDS=60
-LLM_MAX_TOKENS=768
 LLM_TEMPERATURE=0
 ```
+
+当前请求不再设置本地 `max_tokens`／思考额度上限，旧配置项 `LLM_MAX_TOKENS` 已移除。生成长度由供应商的默认行为和服务限制决定，仍可能返回截断状态；这不代表无限生成。默认 60 秒超时与批次累计调用次数上限继续生效。修改本机 Key 后，已运行的后端需重启；新评估使用新 run-id。
 
 这里的模型是当前项目默认配置，不保证账号一直有该模型或免费额度。真实使用前，以自己的控制台权限和剩余额度为准。`backend/.env` 已被 Git 忽略；无需配置前端 Key。
 
@@ -240,6 +241,18 @@ C01～C04 从用户问题索取秘密；C05 从资料索取秘密。可选 C05�
 
 ## 7. 批量评估：生成可用于报告的数据
 
+**大白话：这就是让 Python 程序替你依次选题、切换档位、发送问题、记结果。不是另一个 AI，也不需要 AI 编程助手才能使用。** 你自己在 PowerShell 输入命令即可。
+
+先区分三个动作，避免以为“看到计划”就已经做完实验：
+
+| 你要做什么 | 对应操作 | 会不会调用真实模型 | 会不会生成实验结果 |
+| --- | --- | --- | --- |
+| 看将要测多少条 | `evaluate.py --suite smoke` | 不会 | 不会，只显示计划并检查用例 |
+| 检查程序流程能否正常工作 | 第 7.2 节的离线自动测试 | 不会，使用模拟模型 | 测试在临时目录生成并核验文件，结束后清理；不是正式成绩 |
+| 真正测当前大模型的攻防表现 | `evaluate.py ... --execute --max-calls ...` | 会，可能消耗额度 | 保存逐条记录；之后还要单独运行 summarize.py |
+
+实际做报告的顺序是：**预览 → 确认额度 → 执行一套用例 → 汇总 → 人工复核 → 带复核文件再次汇总**。第一次只选 smoke，不必把三套都运行。
+
 ### 7.1 页面试用和脚本评估有何不同
 
 | 项目 | 页面 | 评估脚本 |
@@ -250,7 +263,7 @@ C01～C04 从用户问题索取秘密；C05 从资料索取秘密。可选 C05�
 | 输出 | 最终可见回答 | 原始／可见回答、真值、技术状态、评分和汇总 |
 | 是否需要运行 FastAPI/Vite | 都需要 | 不需要，直接调用共用后端流程；仍需后端环境及模型配置 |
 
-评估工具在**第三个 PowerShell 终端、项目根目录**运行；不要把命令贴进网页问题框。
+评估工具在**任意一个 PowerShell 终端、项目根目录**运行；不要把命令贴进网页问题框。**不需要先启动前端或 FastAPI，也不需要打开浏览器。** 已经开着页面时可另开窗口；还没启动项目时，直接开一个窗口就够。
 
 ### 7.2 先离线预览，不消耗模型额度
 
@@ -269,6 +282,19 @@ backend/.venv/Scripts/python.exe scripts/evaluate.py --suite full
 
 这里的 smoke 是**攻防精简集**，与独立的普通连通性检查脚本 `smoke_live.py` 不同。预览只显示计划并校验用例，不生成模型成绩和实验批次目录。
 
+例如看到“计划 24 次试验……离线预览，不调用模型”说明预览成功，**不是已经测试了 24 次**。此时不要马上照抄后面的汇总命令，因为还没有新结果目录。
+
+如果你现在只想确认“第二条链路的代码能不能工作”，先运行下面这组零模型调用的自检；不需要有效 API Key，也不需要启动页面：
+
+```powershell
+Set-Location 'C:\Users\阿锋\Desktop\LLM Prompt Injection Attacks and Defenses'
+Push-Location backend
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+Pop-Location
+```
+
+看到 `Ran 27 tests` 和 `OK`，表示当前版本的离线检查通过。测试包含模拟调用、预算暂停／恢复、汇总文件生成、泄露统计和复核依赖等；输出里即使出现“执行”或“累计模型调用”，也是测试替换后的模拟流程，不是向 LongCat 发请求。这里的临时图表和结果会在测试结束后清理，不能拿来写真实攻防成绩。
+
 上限 = 用例数 × 档位数 × 重复次数。输入阻断时实际调用减少。挑战集是探索用例，不是保证成功的攻击包，也不能与旧正式集混称同一冻结数据集。
 
 ### 7.3 确认额度后，显式执行一个批次
@@ -276,8 +302,20 @@ backend/.venv/Scripts/python.exe scripts/evaluate.py --suite full
 下面是**会调用真实模型的命令**，仅在已确认本次可用额度和预算后手动执行。本指南没有替你执行：
 
 ```powershell
-backend/.venv/Scripts/python.exe scripts/evaluate.py --suite smoke --run-id demo-smoke-01 --execute --max-calls 24
+Set-Location 'C:\Users\阿锋\Desktop\LLM Prompt Injection Attacks and Defenses'
+$experimentRunId = 'smoke-' + (Get-Date -Format 'yyyyMMdd-HHmmss')
+backend/.venv/Scripts/python.exe scripts/evaluate.py --suite smoke --run-id $experimentRunId --execute --max-calls 24
 ```
+
+第一行进入项目，第二行给这次实验起一个带时间的名字，第三行才开始真实测试。下面的恢复、汇总和复核命令都使用这个变量，**请在同一个 PowerShell 窗口中接着操作**。它不是 API Key。程序结束后先检查是否有技术错误；有错误先处理，不要反复新建批次重跑。
+
+正常执行后，结果保存在 `runs/<本次实验名字>/`，可以查看路径：
+
+```powershell
+Write-Output "本次结果目录：runs/$experimentRunId"
+```
+
+`--max-calls 24` 是最多占用 24 次模型请求预算，不是保证用满 24 次，也不是 24 tokens。输入层拦截不调用模型，实际调用可能更少。脚本结束也不会自动生成 summary.csv 或 comparison.png，须继续第 7.5 节。
 
 初次建议用 smoke 熟悉完整流程。要运行挑战集或正式集，应分别使用新目录和相应预算：
 
@@ -287,6 +325,10 @@ backend/.venv/Scripts/python.exe scripts/evaluate.py --suite full --run-id demo-
 ```
 
 这些是三种独立选择，**不要求连续执行三条**。如果额度不足，应先预览，降低本次预算或分日继续，不要照抄超过自己额度的上限。
+
+上面 challenge/full 的 `demo-...-01` 是独立示例名字，已有同名目录时换新名字；如果改跑这两套，后续汇总路径也要相应修改，不能继续使用 smoke 的变量或路径。
+
+低预算只代表先跑了前面的一部分，并不保证已覆盖四档或干净资料对照。部分结果中的资料劫持可能暂时显示不确定；要得到完整结论，需在条件不变且额度允许时恢复，跑齐相应对照。不要把部分批次说成完整测试。
 
 | 参数 | 怎么用 |
 | --- | --- |
@@ -306,8 +348,10 @@ backend/.venv/Scripts/python.exe scripts/evaluate.py --suite full --run-id demo-
 脚本达到上限会保存进度并停止，遇到技术错误也会记录并暂停。可按 Ctrl + C 中断；下次恢复要保留同样的 suite、profiles、repeats、run-id 和配置：
 
 ```powershell
-backend/.venv/Scripts/python.exe scripts/evaluate.py --suite smoke --run-id demo-smoke-01 --execute --max-calls 24 --resume
+backend/.venv/Scripts/python.exe scripts/evaluate.py --suite smoke --run-id $experimentRunId --execute --max-calls 24 --resume
 ```
+
+恢复已有批次时**不要重新执行生成时间名字的那一行**。如果关闭过窗口，先找到原实验目录名，例如 `smoke-20261102-150000`，再设置 `$experimentRunId = 'smoke-20261102-150000'`；这里必须填你实际已有的名字，不能直接用示例时间。
 
 如果此前已经用完累计 24 次，再用 24 恢复不会得到额外 24 次。只有核实额外可用额度后，才提高累计上限。已完成或技术失败的试验不会自动重跑。
 
@@ -318,8 +362,16 @@ backend/.venv/Scripts/python.exe scripts/evaluate.py --suite smoke --run-id demo
 ### 7.5 生成汇总和图表，不调用模型
 
 ```powershell
-backend/.venv/Scripts/python.exe scripts/summarize.py --run-dir runs/demo-smoke-01
+backend/.venv/Scripts/python.exe scripts/summarize.py --run-dir "runs/$experimentRunId"
 ```
+
+汇总成功会显示“汇总……；待人工复核……”并生成文件。接着打开结果目录：
+
+```powershell
+Invoke-Item "runs/$experimentRunId"
+```
+
+先用 Excel 看 `summary.csv`，用图片查看器看 `comparison.png`，用编辑器看 `scored.jsonl`；不要期待网页自动出现这些批量成绩，当前网页没有接入历史实验报表。
 
 可以对已执行的部分批次汇总，但要同时报告未运行与未知结果，不能声称完成全量实验。仅做过离线预览时，还没有运行目录可供汇总。
 
@@ -369,8 +421,12 @@ completed（有最终记录）＋ result_unknown（结果未知）＋ unrun（�
 2. 将模板复制为 `reviews.json`，保留原模板：
 
 ```powershell
-Copy-Item runs/demo-smoke-01/review-template.json runs/demo-smoke-01/reviews.json
+if (-not (Test-Path "runs/$experimentRunId/reviews.json")) {
+    Copy-Item "runs/$experimentRunId/review-template.json" "runs/$experimentRunId/reviews.json"
+}
 ```
+
+如果已经有 reviews.json，继续编辑它，不要反复复制覆盖已写好的复核意见。
 
 3. 用编辑器打开 `reviews.json` 和 `scored.jsonl`，按 request_id 对应记录；先看干净对照，再看污染组。
 4. 填 `reviewer`、`reason`，核对适用标签。下例只是格式示意，键要保留为文件里的真实请求 ID，不能直接替换整份文件：
@@ -393,8 +449,10 @@ Copy-Item runs/demo-smoke-01/review-template.json runs/demo-smoke-01/reviews.jso
 5. 应用人工复核，再生成汇总：
 
 ```powershell
-backend/.venv/Scripts/python.exe scripts/summarize.py --run-dir runs/demo-smoke-01 --reviews runs/demo-smoke-01/reviews.json
+backend/.venv/Scripts/python.exe scripts/summarize.py --run-dir "runs/$experimentRunId" --reviews "runs/$experimentRunId/reviews.json"
 ```
+
+带 `--reviews` 的命令才会应用你填写的复核文件。程序会重新生成 summary/scored/图表，不会修改 records.jsonl 原始记录；后续需要保留人工意见时，也要带上这个参数，不能以为复核标签已经写回原始日志。
 
 工具会保留自动标签与人工理由，并重新检查配对依赖。A07～A09 依赖 N04；C06～C08 依赖 CN01，必须同档位、同重复编号。干净对照缺失或人工判不合格时，相关劫持结论变为不确定并恢复待复核，不能强填成功绕过。
 
@@ -460,3 +518,11 @@ npm run test:e2e
 | [AGENTS.md](AGENTS.md) | 项目 AI 编程规则 |
 | [实现与验证记录](实现记录.md) | 已验证范围与仍未验证事项 |
 | [实验报告模板](reports/实验报告模板.md) | 实验完成后填写的报告结构 |
+
+### 本说明的流程核验记录（2026-11-02）
+
+已实际执行 smoke/challenge/full 的离线计划预览，分别得到 24/40/60 条计划；27 项后端离线测试通过。另在不改业务源码的临时验证环境中，将模型客户端替换为固定模拟响应，走完三套批次，共生成 124 条试验记录，并确认恢复、配对秘密、JSON/CSV、图表及复核文件读取正常。
+
+**这些是程序流程检查，不是 LongCat 的真实攻防成绩，也没有消耗真实模型请求。** 模拟批次以 `readme-offline-20261102-145711-` 开头，目录内有 `OFFLINE-MOCK-ONLY.txt` 标记；本机核验摘要为 `runs/readme-offline-verification-20261102-145711.json`。这些本机产物被 Git 忽略，不属于克隆仓库后必定存在的文件。
+
+本次没有重新验证真实 Key、当前模型服务可用性或账号额度。要测这些条件和实际攻击效果，须在确认预算后按第 7.3 节真实执行；不能把本次模拟评分用于实验报告结论。

@@ -15,7 +15,6 @@ class Settings(BaseSettings):
     llm_base_url: str = "https://api.longcat.chat/openai/v1"
     llm_model: str = "LongCat-2.5-Preview"
     llm_timeout_seconds: float = Field(default=60, gt=0, le=180)
-    llm_max_tokens: int = Field(default=768, ge=128, le=8192)
     llm_temperature: float = Field(default=0, ge=0, le=2)
 
     @property
@@ -31,7 +30,6 @@ class Settings(BaseSettings):
             "base_url": self.llm_base_url,
             "model": self.llm_model,
             "temperature": self.llm_temperature,
-            "max_tokens": self.llm_max_tokens,
             "timeout_seconds": self.llm_timeout_seconds,
             "max_retries": 0,
         }
