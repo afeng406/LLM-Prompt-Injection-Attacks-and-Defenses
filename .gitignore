@@ -17,3 +17,11 @@
 **/dist/
 *.log
 /runs/
+
+# Local project notes and defense materials
+/实施方案.md
+/实现记录.md
+/答辩高频问题与参考答案.md
+/系统实现详解与答辩学习指南.md
+/设计方案.md
+/资料核验.md

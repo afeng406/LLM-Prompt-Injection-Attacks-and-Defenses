@@ -4,7 +4,24 @@
 
 这份指南按“启动 → 看懂页面 → 手动实验 → 批量评估 → 阅读结果 → 写报告”的顺序编写。所有终端示例均用于 **Windows PowerShell**。
 
-当前实现包含原正式集（9 条攻击、6 条正常用例）、独立挑战集（8 条攻击、2 条正常对照）、B0～B3 和评估工具。已有真实连通性验证与离线测试记录，不能把它们当成正式攻防成绩；你的手动观察也要与脚本保存的批次记录分开。验证历史见[实现记录](实现记录.md)。
+当前实现包含原正式集（9 条攻击、6 条正常用例）、独立挑战集（8 条攻击、2 条正常对照）、B0～B3 和评估工具。离线测试用于验证程序行为。实际模型效果以对应批次的记录和人工复核为准。
+
+## 克隆后快速测试
+
+在仓库根目录用 PowerShell 执行以下命令。依赖安装完成后，测试会使用本地模拟响应，无需 API Key、前端或后端服务。
+
+```powershell
+python -m venv backend/.venv
+backend/.venv/Scripts/python.exe -m pip install -r backend/requirements-dev.txt
+Push-Location backend
+try {
+    ./.venv/Scripts/python.exe -m unittest discover -s tests -v
+} finally {
+    Pop-Location
+}
+```
+
+如果要在网页里体验真实模型问答，按第 2 节把自己的 Key 填入 `backend/.env`，再启动前后端。
 
 ## 1. 第一次使用，先做什么
 
@@ -511,12 +528,8 @@ npm run test:e2e
 
 | 文档 | 用途 |
 | --- | --- |
-| [设计方案](设计方案.md) | 实验目标、威胁模型与评估方法 |
-| [实施方案](实施方案.md) | 模板、接口、数据约定与验收条件 |
-| [资料核验](资料核验.md) | 模型渠道和参考资料的历史核验 |
 | [Harness 使用说明](Harness/README.md) | AI 编程流程、职责边界与反过度设计 |
 | [AGENTS.md](AGENTS.md) | 项目 AI 编程规则 |
-| [实现与验证记录](实现记录.md) | 已验证范围与仍未验证事项 |
 | [实验报告模板](reports/实验报告模板.md) | 实验完成后填写的报告结构 |
 
 ### 本说明的流程核验记录（2026-11-02）

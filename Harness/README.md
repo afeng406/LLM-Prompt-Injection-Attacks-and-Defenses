@@ -1,6 +1,6 @@
 # AI 编程 Harness
 
-此目录定义 AI 协作开发时的约束，只管理规则与边界。项目根目录的 [`AGENTS.md`](../AGENTS.md) 是工作入口，领域归属和依赖方向见 [`领域边界.md`](领域边界.md)。功能目标与实验判定见 [`实施方案.md`](../实施方案.md)，实际完成度见 [`实现记录.md`](../实现记录.md)；模型渠道的可变事实仍须结合账户核查。
+此目录定义 AI 协作开发时的约束，只管理规则与边界。项目根目录的 [`AGENTS.md`](../AGENTS.md) 是工作入口，领域归属和依赖方向见 [`领域边界.md`](领域边界.md)。启动、实验判定与核验方法见 [项目 README](../README.md)。
 
 ## 每次编码的最短流程
 
@@ -18,4 +18,4 @@
 
 ## 当前验收状态
 
-已按边界完成首版代码：`backend/app` 执行问答，`backend/experiments` 与 `scripts` 编排和评估，`frontend` 只访问公开 HTTP 合同。没有引入 Agent 框架、通用事件总线或额外运行时。验证命令在根目录 `AGENTS.md`，执行证据在 `实现记录.md`。
+已按边界完成首版代码：`backend/app` 执行问答，`backend/experiments` 与 `scripts` 编排和评估，`frontend` 只访问公开 HTTP 合同。没有引入 Agent 框架、通用事件总线或额外运行时。验证命令在根目录 `AGENTS.md`。
